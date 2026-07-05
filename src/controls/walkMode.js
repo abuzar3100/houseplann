@@ -181,6 +181,16 @@ export function createWalkMode(camera, renderer, stairSteps) {
   const blocker = document.getElementById('blocker');
   const instructions = document.getElementById('instructions');
 
+  // --- pointer-lock wiring (game-style mouse look) ---
+  // When the pointer is locked the mouse turns the view; the blocker overlay is
+  // only shown while UNLOCKED (acts as a "click to look" / pause screen).
+  controls.addEventListener('lock', () => { if (blocker) blocker.style.display = 'none'; });
+  controls.addEventListener('unlock', () => { if (active && blocker) blocker.style.display = 'flex'; });
+  // Click anywhere (overlay or the 3D canvas) to (re)acquire the lock.
+  const clickToLock = () => { if (active && !controls.isLocked) controls.lock(); };
+  if (blocker) blocker.addEventListener('click', clickToLock);
+  renderer.domElement.addEventListener('click', clickToLock);
+
   // Key listeners
   function onKeyDown(e) {
     switch (e.code) {
@@ -279,12 +289,12 @@ export function createWalkMode(camera, renderer, stairSteps) {
       camera.fov = 60;
       camera.updateProjectionMatrix();
 
-      // Lock pointer
-      controls.lock();
-
-      // Hide UI, show blocker
+      // Show the "click to look" overlay, then try to grab the lock right away
+      // (the Walk-button click is a user gesture, so this usually succeeds; if a
+      // browser blocks it, the overlay stays up and one click locks the mouse).
       if (blocker) blocker.style.display = 'flex';
       if (instructions) instructions.style.display = '';
+      controls.lock();
 
       document.addEventListener('keydown', onKeyDown);
       document.addEventListener('keyup', onKeyUp);
