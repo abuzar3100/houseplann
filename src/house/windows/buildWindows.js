@@ -3,6 +3,7 @@
 // matching `openings` list (kind:'window') that buildWalls() uses to leave the
 // sill + lintel bands and open the glazed span between them.
 // ============================================================================
+import * as THREE from 'three';
 import { MAT_GLASS, MAT_WIN_FRAME } from '../../materials/materials.js';
 import { boxFromBounds } from '../../utils/box.js';
 

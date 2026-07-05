@@ -19,6 +19,11 @@ export const CFG = {
 
   SETBACK_TOP: 2,      // rooms start at Z=2
   SETBACK_BOT: 3.5,    // bottom setback
+
+  // Landscape (Phase 10)
+  BOUNDARY_H: 7,       // compound wall height
+  GATE_W: 10,          // main gate width (front)
+  PED_GATE_W: 3,       // pedestrian gate width
 };
 
 // Architectural palette reference (kept from drawings for documentation;

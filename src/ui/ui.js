@@ -1,5 +1,5 @@
 // Wires the #ui overlay buttons to the app controller.
-// controller: { setFloors(mode), setView(mode), toggleLabels(on), toggleRoof(on), toggleFurniture(on), reset() }
+// controller: { setFloors(mode), setView(mode), toggleLabels(on), toggleRoof(on), toggleFurniture(on), toggleLandscape(on), toggleNight(), reset() }
 export function initUI(controller) {
   const ui = document.getElementById('ui');
 
@@ -42,6 +42,24 @@ export function initUI(controller) {
     furnitureOn = !furnitureOn;
     controller.toggleFurniture(furnitureOn);
     furnitureBtn.classList.toggle('active', furnitureOn);
+  });
+
+  const landscapeBtn = ui.querySelector('[data-toggle="landscape"]');
+  let landscapeOn = true;
+  landscapeBtn.addEventListener('click', () => {
+    landscapeOn = !landscapeOn;
+    controller.toggleLandscape(landscapeOn);
+    landscapeBtn.classList.toggle('active', landscapeOn);
+  });
+
+  const nightBtn = ui.querySelector('[data-toggle="night"]');
+  nightBtn.addEventListener('click', () => {
+    controller.toggleNight();
+  });
+
+  const walkBtn = ui.querySelector('[data-action="walk"]');
+  walkBtn.addEventListener('click', () => {
+    controller.toggleWalk();
   });
 
   ui.querySelector('[data-action="reset"]').addEventListener('click', () => controller.reset());

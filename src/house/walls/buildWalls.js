@@ -9,6 +9,7 @@
 //   - window -> solid sill (0..sill) and lintel (head..H), open band between.
 // Each opening is placed exactly where the drawing shows it.
 // ============================================================================
+import * as THREE from 'three';
 import { CFG } from '../../config.js';
 import { MAT_WALL_EXT, MAT_WALL_INT } from '../../materials/materials.js';
 import { boxFromBounds } from '../../utils/box.js';

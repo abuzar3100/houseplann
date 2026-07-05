@@ -3,6 +3,7 @@
 // matching `openings` list that buildWalls() uses to cut the wall gaps.
 // Each door is an explicit object (frame jambs + head + a wood leaf).
 // ============================================================================
+import * as THREE from 'three';
 import { MAT_DOOR_LEAF, MAT_DOOR_FRAME, MAT_DOOR_MAIN } from '../../materials/materials.js';
 import { boxFromBounds } from '../../utils/box.js';
 import { doorHeight } from './doorSchedule.js';

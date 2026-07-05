@@ -24,3 +24,56 @@ html, body { margin: 0; height: 100%; overflow: hidden;
 #ui button:hover { background: #e7edf3; }
 #ui button.active { background: #4f8ef7; border-color: #3f7ce0; color: #fff; }
 #ui .hint { font-size: 10.5px; color: #7a828c; margin-top: 8px; line-height: 1.4; }
+
+/* ===== Phase 14B — Room Inspector Tooltip ===== */
+#room-tooltip {
+  position: fixed; z-index: 50;
+  width: 220px;
+  background: rgba(30, 35, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #eef2f6;
+  font-family: system-ui, Segoe UI, Roboto, sans-serif;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  pointer-events: none;
+  user-select: none;
+}
+#room-tooltip .tip-category {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .8px;
+  color: #8a9aa8; margin-bottom: 2px;
+}
+#room-tooltip .tip-name {
+  font-size: 17px; font-weight: 700;
+  margin-bottom: 10px; color: #fff;
+}
+#room-tooltip .tip-grid {
+  display: flex; gap: 2px;
+  margin-bottom: 10px;
+}
+#room-tooltip .tip-cell {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border-radius: 7px;
+  padding: 7px 6px;
+  text-align: center;
+}
+#room-tooltip .tip-val {
+  display: block;
+  font-size: 14px; font-weight: 600; color: #fff;
+}
+#room-tooltip .tip-lbl {
+  display: block;
+  font-size: 9.5px; color: #8a9aa8; margin-top: 1px;
+}
+#room-tooltip .tip-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+#room-tooltip .tip-key { color: #8a9aa8; }
+#room-tooltip .tip-val-sm { color: #dce2e8; font-weight: 500; }

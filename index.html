@@ -9,6 +9,13 @@
 <body>
   <div id="app"></div>
 
+  <!-- Pointer-lock blocker overlay (shown during walk mode) -->
+  <div id="blocker" style="display:none;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,0.35);cursor:crosshair;">
+    <div id="instructions" style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:#fff;font-family:system-ui;font-size:13px;letter-spacing:.1em;text-align:center;background:rgba(0,0,0,0.5);padding:10px 20px;border-radius:8px;">
+      Click to walk · WASD = move · Shift = run · Esc = exit
+    </div>
+  </div>
+
   <!-- UI overlay (populated/handled by src/ui/ui.js) -->
   <div id="ui">
     <h1>Sri Afsar Residence</h1>
@@ -25,15 +32,23 @@
       <div class="row">
         <button data-view="3d" class="active">3D</button>
         <button data-view="plan">Plan</button>
+        <button data-action="walk">Walk</button>
       </div>
       <div class="row" style="margin-top:6px">
         <button data-toggle="labels" class="active">Labels</button>
         <button data-toggle="roof" class="active">Roof</button>
         <button data-toggle="furniture" class="active">Furniture</button>
+        <button data-toggle="landscape" class="active">Landscape</button>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">Lighting</div>
+      <div class="row">
+        <button data-toggle="night">Night Mode</button>
         <button data-action="reset">Reset</button>
       </div>
     </div>
-    <div class="hint">Phases 1–9. Drag = orbit · wheel = zoom</div>
+    <div class="hint">Click any room to inspect · Drag = orbit · Wheel = zoom</div>
   </div>
 
   <script type="module" src="./src/main.js"></script>
