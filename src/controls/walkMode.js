@@ -14,8 +14,12 @@ import { GF_DOORS, FF_DOORS } from '../house/doors/doorSchedule.js';
 const PLAYER_H = 5.5;     // eye height (ft)
 const PLAYER_R = 1;       // collision radius
 const WALK_SPEED = 12;    // ft/s
-const RUN_SPEED = 24;     // ft/s
-const STEP_H = 1.2;       // max climbable step height (ft)
+const RUN_SPEED = 22;     // ft/s (hold Shift)
+const FLY_SPEED = 30;     // ft/s (creative fly)
+const STEP_H = 1.4;       // max auto-climbable step height (ft)
+const GRAVITY = 34;       // ft/s²
+const JUMP_V = 13;        // jump velocity (Space)
+const DBL_TAP = 300;      // ms window for double-tap Space -> toggle fly
 
 // ---------------------------------------------------------------------------
 // Build collision AABBs from wall edges, skipping door openings
@@ -167,7 +171,11 @@ export function createWalkMode(camera, renderer, stairSteps) {
   // Player state
   const pos = new THREE.Vector3(32, 0, 34);   // start: front yard / foyer area
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-  const keys = { w: false, a: false, s: false, d: false, shift: false };
+  const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+  let mode = 'walk';        // 'walk' | 'fly'
+  let velY = 0;             // vertical velocity (walk gravity/jump)
+  let grounded = false;
+  let lastSpace = 0;        // for double-tap fly toggle
 
   // DOM elements
   const blocker = document.getElementById('blocker');
@@ -181,6 +189,17 @@ export function createWalkMode(camera, renderer, stairSteps) {
       case 'KeyS': keys.s = true; break;
       case 'KeyD': keys.d = true; break;
       case 'ShiftLeft': case 'ShiftRight': keys.shift = true; break;
+      case 'Space': {
+        e.preventDefault();
+        const t = performance.now();
+        if (t - lastSpace < DBL_TAP) {          // double-tap Space toggles fly
+          mode = mode === 'fly' ? 'walk' : 'fly';
+          velY = 0;
+        }
+        lastSpace = t;
+        keys.space = true;
+        break;
+      }
     }
   }
   function onKeyUp(e) {
@@ -190,6 +209,7 @@ export function createWalkMode(camera, renderer, stairSteps) {
       case 'KeyS': keys.s = false; break;
       case 'KeyD': keys.d = false; break;
       case 'ShiftLeft': case 'ShiftRight': keys.shift = false; break;
+      case 'Space': keys.space = false; break;
     }
   }
 
@@ -205,43 +225,45 @@ export function createWalkMode(camera, renderer, stairSteps) {
   function update() {
     if (!active) return;
 
-    const delta = Math.min(clock.getDelta(), 0.05);  // cap delta
-    const speed = keys.shift ? RUN_SPEED : WALK_SPEED;
-    const moveDist = speed * delta;
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const flying = mode === 'fly';
 
-    // Direction from camera euler
+    // --- horizontal direction from yaw ---
     const yaw = camera.rotation.y;
     const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
     const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    const speed = (flying ? FLY_SPEED : (keys.shift ? RUN_SPEED : WALK_SPEED)) * dt;
 
     let dx = 0, dz = 0;
-    if (keys.w) { dx += fwd.x * moveDist; dz += fwd.z * moveDist; }
-    if (keys.s) { dx -= fwd.x * moveDist; dz -= fwd.z * moveDist; }
-    if (keys.a) { dx -= right.x * moveDist; dz -= right.z * moveDist; }
-    if (keys.d) { dx += right.x * moveDist; dz += right.z * moveDist; }
+    if (keys.w) { dx += fwd.x * speed; dz += fwd.z * speed; }
+    if (keys.s) { dx -= fwd.x * speed; dz -= fwd.z * speed; }
+    if (keys.a) { dx -= right.x * speed; dz -= right.z * speed; }
+    if (keys.d) { dx += right.x * speed; dz += right.z * speed; }
 
-    if (dx === 0 && dz === 0) return;
+    // --- horizontal move ---
+    if (flying) {
+      pos.x += dx; pos.z += dz;                        // no wall clip while flying
+    } else if (dx !== 0 || dz !== 0) {
+      pos.x = resolveCollision(pos.x + dx, pos.z, PLAYER_R, collisionBoxes).x;
+      pos.z = resolveCollision(pos.x, pos.z + dz, PLAYER_R, collisionBoxes).z;
+    }
 
-    // Try X movement with collision
-    let nx = pos.x + dx;
-    let nz = pos.z;
-    const resolvedX = resolveCollision(nx, nz, PLAYER_R, collisionBoxes);
-    nx = resolvedX.x;
-    nz = resolvedX.z;
+    // --- vertical ---
+    const ground = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
+    if (flying) {
+      let vy = 0;
+      if (keys.space) vy += 1;
+      if (keys.shift) vy -= 1;
+      pos.y += vy * FLY_SPEED * dt;
+      if (pos.y < ground) { pos.y = ground; }          // can't sink through floor
+    } else {
+      if (keys.space && grounded) { velY = JUMP_V; grounded = false; }   // jump
+      velY -= GRAVITY * dt;
+      pos.y += velY * dt;
+      if (pos.y <= ground) { pos.y = ground; velY = 0; grounded = true; } // land / auto-step
+      else grounded = false;
+    }
 
-    // Try Z movement with collision
-    nz = pos.z + dz;
-    const resolvedZ = resolveCollision(nx, nz, PLAYER_R, collisionBoxes);
-    nx = resolvedZ.x;
-    nz = resolvedZ.z;
-
-    pos.x = nx;
-    pos.z = nz;
-
-    // Vertical: snap feet to the support surface below (steps up AND down)
-    pos.y = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
-
-    // Apply position
     camera.position.set(pos.x, pos.y + PLAYER_H, pos.z);
   }
 
@@ -250,6 +272,7 @@ export function createWalkMode(camera, renderer, stairSteps) {
     start() {
       if (active) return;
       active = true;
+      velY = 0; grounded = false; mode = 'walk';
 
       // Set camera position to player position
       camera.position.set(pos.x, pos.y + PLAYER_H, pos.z);
@@ -298,6 +321,7 @@ export function createWalkMode(camera, renderer, stairSteps) {
 
     update,
     get isActive() { return active; },
+    get mode() { return mode; },
     get position() { return pos; },
     controls,
     collisionBoxes,
