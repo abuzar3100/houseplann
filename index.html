@@ -16,9 +16,13 @@
     </div>
   </div>
 
+  <!-- Stats badge -->
+  <div id="stats"><span class="fps-num">–</span> fps</div>
+
   <!-- UI overlay (populated/handled by src/ui/ui.js) -->
   <div id="ui">
     <h1>Sri Afsar Residence</h1>
+    <p class="sub">G+1 · Chitradurga</p>
     <div class="group">
       <div class="group-label">Floors</div>
       <div class="row">
@@ -48,8 +52,9 @@
         <button data-action="reset">Reset</button>
       </div>
     </div>
-    <div class="hint">Click room to inspect · Drag = orbit · Wheel = zoom · <b>F</b> = open/close nearest door</div>
+    <div class="hint">Click room to inspect · Drag = orbit · Wheel = zoom · <b>F</b> = open/close nearest door · <b>H</b> = hide panel</div>
   </div>
+  <div id="ui-toggle" title="Show panel (H)">☰</div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

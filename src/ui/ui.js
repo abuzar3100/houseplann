@@ -63,4 +63,13 @@ export function initUI(controller) {
   });
 
   ui.querySelector('[data-action="reset"]').addEventListener('click', () => controller.reset());
+
+  // Collapse / show panel — H key or the ☰ handle
+  const toggle = document.getElementById('ui-toggle');
+  const setPanel = (hidden) => ui.classList.toggle('collapsed', hidden);
+  toggle?.addEventListener('click', () => setPanel(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyH' && !e.repeat) setPanel(!ui.classList.contains('collapsed'));
+  });
 }
+

@@ -1,79 +1,111 @@
+:root {
+  --bg:      rgba(18, 22, 28, 0.82);
+  --bg2:     rgba(255,255,255,0.05);
+  --line:    rgba(255,255,255,0.10);
+  --txt:     #eaf0f6;
+  --muted:   #8b98a8;
+  --accent:  #4f8ef7;
+  --accent2: #38d0c4;
+}
+
 html, body { margin: 0; height: 100%; overflow: hidden;
-  font-family: system-ui, Segoe UI, Roboto, sans-serif; }
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif; background:#0e1116; }
 #app { position: fixed; inset: 0; }
 
+/* ---------------- Control panel ---------------- */
 #ui {
-  position: fixed; top: 12px; left: 12px; z-index: 10;
-  background: rgba(255,255,255,0.92);
-  border: 1px solid #cfd6dd; border-radius: 10px;
-  padding: 12px; width: 210px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-  color: #2a2f36;
+  position: fixed; top: 14px; left: 14px; z-index: 10;
+  width: 224px;
+  background: var(--bg);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+  color: var(--txt);
+  transition: transform .25s ease, opacity .25s ease;
 }
-#ui h1 { font-size: 14px; margin: 0 0 8px; font-weight: 700; }
-#ui .group { margin-bottom: 10px; }
-#ui .group-label { font-size: 11px; text-transform: uppercase;
-  letter-spacing: .6px; color: #6b7480; margin-bottom: 5px; }
-#ui .row { display: flex; gap: 6px; flex-wrap: wrap; }
-#ui button {
-  flex: 1 1 auto; min-width: 56px;
-  padding: 7px 8px; font-size: 12px; cursor: pointer;
-  background: #f3f6f9; border: 1px solid #c7cfd8; border-radius: 7px; color: #2a2f36;
-  transition: background .15s, border-color .15s;
-}
-#ui button:hover { background: #e7edf3; }
-#ui button.active { background: #4f8ef7; border-color: #3f7ce0; color: #fff; }
-#ui .hint { font-size: 10.5px; color: #7a828c; margin-top: 8px; line-height: 1.4; }
+#ui.collapsed { transform: translateX(-232px); opacity: 0; }
 
-/* ===== Phase 14B — Room Inspector Tooltip ===== */
+#ui h1 {
+  font-size: 13px; margin: 0 0 2px; font-weight: 700; letter-spacing: .3px;
+}
+#ui .sub { font-size: 10px; color: var(--muted); margin: 0 0 12px;
+  text-transform: uppercase; letter-spacing: 1.4px; }
+
+#ui .group { margin-bottom: 12px; }
+#ui .group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+#ui .row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#ui button {
+  flex: 1 1 auto; min-width: 54px;
+  padding: 8px 8px; font-size: 12px; font-weight: 500; cursor: pointer;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 9px;
+  color: var(--txt);
+  transition: background .15s, border-color .15s, transform .08s;
+}
+#ui button:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.2); }
+#ui button:active { transform: translateY(1px); }
+#ui button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent; color: #06121f; font-weight: 700;
+  box-shadow: 0 3px 12px rgba(79,142,247,0.35);
+}
+
+#ui .hint { font-size: 10px; color: var(--muted); margin-top: 10px;
+  line-height: 1.55; border-top: 1px solid var(--line); padding-top: 9px; }
+#ui .hint b { color: var(--accent2); }
+
+/* Collapse handle */
+#ui-toggle {
+  position: fixed; top: 14px; left: 14px; z-index: 11;
+  width: 34px; height: 34px; display: none;
+  align-items: center; justify-content: center;
+  background: var(--bg); backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 10px;
+  color: var(--txt); cursor: pointer; font-size: 16px;
+}
+#ui.collapsed ~ #ui-toggle { display: flex; }
+
+/* ---------------- FPS / stats badge ---------------- */
+#stats {
+  position: fixed; top: 14px; right: 14px; z-index: 10;
+  background: var(--bg); backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 7px 11px; color: var(--txt);
+  font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .3px; min-width: 78px; text-align: right;
+}
+#stats .fps-num { color: var(--accent2); }
+
+/* Walk-mode blocker */
+#blocker { display:none; position:fixed; inset:0; z-index:20;
+  background:rgba(6,10,16,0.4); cursor:crosshair; }
+#instructions { position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+  color:#fff; font: 500 13px/1.5 system-ui; letter-spacing:.08em; text-align:center;
+  background:rgba(10,14,20,0.65); backdrop-filter:blur(10px);
+  padding:12px 22px; border-radius:10px; border:1px solid var(--line); }
+
+/* ===== Room Inspector Tooltip ===== */
 #room-tooltip {
-  position: fixed; z-index: 50;
-  width: 220px;
-  background: rgba(30, 35, 42, 0.94);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  padding: 14px 16px;
-  color: #eef2f6;
-  font-family: system-ui, Segoe UI, Roboto, sans-serif;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  pointer-events: none;
-  user-select: none;
+  position: fixed; z-index: 50; width: 220px;
+  background: rgba(20, 25, 32, 0.94);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+  padding: 14px 16px; color: #eef2f6;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  pointer-events: none; user-select: none;
 }
-#room-tooltip .tip-category {
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .8px;
-  color: #8a9aa8; margin-bottom: 2px;
-}
-#room-tooltip .tip-name {
-  font-size: 17px; font-weight: 700;
-  margin-bottom: 10px; color: #fff;
-}
-#room-tooltip .tip-grid {
-  display: flex; gap: 2px;
-  margin-bottom: 10px;
-}
-#room-tooltip .tip-cell {
-  flex: 1;
-  background: rgba(255,255,255,0.06);
-  border-radius: 7px;
-  padding: 7px 6px;
-  text-align: center;
-}
-#room-tooltip .tip-val {
-  display: block;
-  font-size: 14px; font-weight: 600; color: #fff;
-}
-#room-tooltip .tip-lbl {
-  display: block;
-  font-size: 9.5px; color: #8a9aa8; margin-top: 1px;
-}
-#room-tooltip .tip-row {
-  display: flex; justify-content: space-between;
-  padding: 4px 0;
-  font-size: 12px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
+#room-tooltip .tip-category { font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .8px; color: #8a9aa8; margin-bottom: 2px; }
+#room-tooltip .tip-name { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: #fff; }
+#room-tooltip .tip-grid { display: flex; gap: 4px; margin-bottom: 10px; }
+#room-tooltip .tip-cell { flex: 1; background: rgba(255,255,255,0.06);
+  border-radius: 7px; padding: 7px 6px; text-align: center; }
+#room-tooltip .tip-val { display: block; font-size: 14px; font-weight: 600; color: #fff; }
+#room-tooltip .tip-lbl { display: block; font-size: 9.5px; color: #8a9aa8; margin-top: 1px; }
+#room-tooltip .tip-row { display: flex; justify-content: space-between; padding: 4px 0;
+  font-size: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
 #room-tooltip .tip-key { color: #8a9aa8; }
 #room-tooltip .tip-val-sm { color: #dce2e8; font-weight: 500; }

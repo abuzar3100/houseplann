@@ -158,12 +158,21 @@ initUI({ setFloors, setView, toggleLabels, toggleRoof, toggleFurniture, toggleLa
 applyState();
 
 // ---- render loop ----
+const fpsEl = document.querySelector('#stats .fps-num');
+let fpsN = 0, fpsT = performance.now();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   doorCtrl.update(dt);
   if (walkMode.isActive) walkMode.update();
   else controls.update();
   renderer.render(scene, camera);
+
+  fpsN++;                                   // FPS badge (updated ~2x/s)
+  const now = performance.now();
+  if (now - fpsT >= 500) {
+    if (fpsEl) fpsEl.textContent = Math.round((fpsN * 1000) / (now - fpsT));
+    fpsN = 0; fpsT = now;
+  }
 });
 
 window.addEventListener('resize', () => {
