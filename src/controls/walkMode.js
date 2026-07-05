@@ -1,11 +1,12 @@
 // ============================================================================
 // PHASE 12 — WALK MODE
-// First-person controls with PointerLockControls, AABB wall collision (with
-// door‑sized gaps), and REAL staircase climbing using stair.stepBoxes.
-// WASD = move · Shift = sprint · Click to lock pointer · Esc to unlock.
+// First-person controls with a custom mouse-look (drag-to-look everywhere, and
+// true free-look via native Pointer Lock where the browser allows it — Pointer
+// Lock is blocked in sandboxed iframes, so we never depend on it), AABB wall
+// collision (with door-sized gaps), and REAL staircase climbing via stepBoxes.
+// Drag mouse = look · WASD = move · Shift = sprint · Space = jump / fly.
 // ============================================================================
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { CFG } from '../config.js';
 import { GF_ROOMS, FF_ROOMS } from '../house/data/rooms.js';
 import { deriveWallEdges } from '../house/walls/deriveEdges.js';
@@ -160,9 +161,7 @@ function buildFloorSurfaces() {
 // ---------------------------------------------------------------------------
 export function createWalkMode(camera, renderer, stairSteps) {
   let active = false;
-
-  // PointerLockControls handles mouse look
-  const controls = new PointerLockControls(camera, renderer.domElement);
+  const canvas = renderer.domElement;
 
   // Build collision geometry once
   const collisionBoxes = buildCollisionBoxes();
@@ -170,26 +169,50 @@ export function createWalkMode(camera, renderer, stairSteps) {
 
   // Player state
   const pos = new THREE.Vector3(32, 0, 34);   // start: front yard / foyer area
-  const euler = new THREE.Euler(0, 0, 0, 'YXZ');
   const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
   let mode = 'walk';        // 'walk' | 'fly'
   let velY = 0;             // vertical velocity (walk gravity/jump)
   let grounded = false;
   let lastSpace = 0;        // for double-tap fly toggle
 
+  // --- Mouse look state (custom — works in sandboxed iframes, unlike PointerLock) ---
+  const SENS = 0.0026;      // radians per pixel of mouse movement
+  const PITCH_LIMIT = Math.PI / 2 - 0.05;
+  let yaw = 0;              // left/right (faces -Z into the house at 0)
+  let pitch = 0;           // up/down
+  let dragging = false;    // drag-to-look fallback (when pointer isn't locked)
+
   // DOM elements
   const blocker = document.getElementById('blocker');
   const instructions = document.getElementById('instructions');
 
-  // --- pointer-lock wiring (game-style mouse look) ---
-  // When the pointer is locked the mouse turns the view; the blocker overlay is
-  // only shown while UNLOCKED (acts as a "click to look" / pause screen).
-  controls.addEventListener('lock', () => { if (blocker) blocker.style.display = 'none'; });
-  controls.addEventListener('unlock', () => { if (active && blocker) blocker.style.display = 'flex'; });
-  // Click anywhere (overlay or the 3D canvas) to (re)acquire the lock.
-  const clickToLock = () => { if (active && !controls.isLocked) controls.lock(); };
-  if (blocker) blocker.addEventListener('click', clickToLock);
-  renderer.domElement.addEventListener('click', clickToLock);
+  const isLocked = () => document.pointerLockElement === canvas;
+
+  // Free-look when the pointer is locked; otherwise drag-to-look while a button
+  // is held. Both use movementX/Y, so it behaves the same either way.
+  function onMouseMove(e) {
+    if (!active) return;
+    if (!isLocked() && !dragging) return;
+    yaw   -= e.movementX * SENS;
+    pitch -= e.movementY * SENS;
+    if (pitch >  PITCH_LIMIT) pitch =  PITCH_LIMIT;
+    if (pitch < -PITCH_LIMIT) pitch = -PITCH_LIMIT;
+  }
+  function onMouseDown(e) {
+    if (!active || e.button !== 0) return;
+    dragging = true;
+    canvas.style.cursor = 'none';
+    // Try to upgrade to true free-look; harmlessly ignored where it's blocked.
+    try { canvas.requestPointerLock?.(); } catch (_) {}
+  }
+  function onMouseUp() {
+    dragging = false;
+    if (!isLocked()) canvas.style.cursor = active ? 'grab' : '';
+  }
+  function onLockChange() {
+    if (isLocked()) canvas.style.cursor = 'none';
+    else canvas.style.cursor = active ? 'grab' : '';
+  }
 
   // Key listeners
   function onKeyDown(e) {
@@ -238,8 +261,11 @@ export function createWalkMode(camera, renderer, stairSteps) {
     const dt = Math.min(clock.getDelta(), 0.05);
     const flying = mode === 'fly';
 
+    // --- apply mouse look to the camera (yaw + pitch) ---
+    camera.rotation.order = 'YXZ';
+    camera.rotation.set(pitch, yaw, 0);
+
     // --- directions (mouse-driven) ---
-    const yaw = camera.rotation.y;
     const flat = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));   // horizontal forward
     // fly follows the FULL look vector (mouse pitch + yaw); walk stays flat
     const fwd = flying ? camera.getWorldDirection(new THREE.Vector3()) : flat;
@@ -282,20 +308,29 @@ export function createWalkMode(camera, renderer, stairSteps) {
       if (active) return;
       active = true;
       velY = 0; grounded = false; mode = 'walk';
+      yaw = 0; pitch = 0;                      // face into the house, level
 
       // Set camera position to player position
       camera.position.set(pos.x, pos.y + PLAYER_H, pos.z);
+      camera.rotation.order = 'YXZ';
       camera.rotation.set(0, 0, 0);
       camera.fov = 60;
       camera.updateProjectionMatrix();
 
-      // Show the "click to look" overlay, then try to grab the lock right away
-      // (the Walk-button click is a user gesture, so this usually succeeds; if a
-      // browser blocks it, the overlay stays up and one click locks the mouse).
-      if (blocker) blocker.style.display = 'flex';
+      // Show the hint bar, but let mouse events pass THROUGH to the canvas so
+      // drag-to-look works (the overlay no longer captures clicks).
+      if (blocker) {
+        blocker.style.display = 'flex';
+        blocker.style.background = 'transparent';
+        blocker.style.pointerEvents = 'none';
+      }
       if (instructions) instructions.style.display = '';
-      controls.lock();
+      canvas.style.cursor = 'grab';
 
+      canvas.addEventListener('mousedown', onMouseDown);
+      document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('pointerlockchange', onLockChange);
       document.addEventListener('keydown', onKeyDown);
       document.addEventListener('keyup', onKeyUp);
       window.addEventListener('resize', onResize);
@@ -306,18 +341,25 @@ export function createWalkMode(camera, renderer, stairSteps) {
     stop() {
       if (!active) return;
       active = false;
+      dragging = false;
 
-      controls.unlock();
+      if (isLocked()) document.exitPointerLock?.();
 
-      // Show UI, hide blocker
-      if (blocker) blocker.style.display = 'none';
+      // Restore UI + cursor
+      if (blocker) { blocker.style.display = 'none'; blocker.style.pointerEvents = ''; }
       if (instructions) instructions.style.display = 'none';
+      canvas.style.cursor = '';
 
+      canvas.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('pointerlockchange', onLockChange);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('resize', onResize);
 
       // Reset camera for orbit controls
+      camera.rotation.order = 'XYZ';
       camera.fov = 45;
       camera.updateProjectionMatrix();
     },
@@ -332,7 +374,7 @@ export function createWalkMode(camera, renderer, stairSteps) {
     get isActive() { return active; },
     get mode() { return mode; },
     get position() { return pos; },
-    controls,
+    get look() { return { yaw, pitch }; },
     collisionBoxes,
   };
 }
