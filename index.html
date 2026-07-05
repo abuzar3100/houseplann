@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sri Afsar Residence — 3D Architectural Model</title>
+  <link rel="stylesheet" href="./src/ui/ui.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- UI overlay (populated/handled by src/ui/ui.js) -->
+  <div id="ui">
+    <h1>Sri Afsar Residence</h1>
+    <div class="group">
+      <div class="group-label">Floors</div>
+      <div class="row">
+        <button data-floors="gf">Ground</button>
+        <button data-floors="ff">First</button>
+        <button data-floors="both" class="active">Both</button>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">View</div>
+      <div class="row">
+        <button data-view="3d" class="active">3D</button>
+        <button data-view="plan">Plan</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button data-toggle="labels" class="active">Labels</button>
+        <button data-toggle="roof" class="active">Roof</button>
+        <button data-toggle="furniture" class="active">Furniture</button>
+        <button data-action="reset">Reset</button>
+      </div>
+    </div>
+    <div class="hint">Phases 1–9. Drag = orbit · wheel = zoom</div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

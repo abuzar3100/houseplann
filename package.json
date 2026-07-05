@@ -1,0 +1,21 @@
+{
+  "name": "afsar-house-3d",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Interactive 3D architectural model of the Sri Afsar G+1 residence (converted from approved GF/FF drawings).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}
