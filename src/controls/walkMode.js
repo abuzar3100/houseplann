@@ -115,22 +115,20 @@ function resolveCollision(px, pz, r, boxes) {
 }
 
 // ---------------------------------------------------------------------------
-// Stair climbing — check if player should step up onto a tread
+// Support height under the player: highest surface (room floor or stair tread)
+// whose top is reachable (≤ feet + STEP_H). Allows stepping UP and DOWN, so
+// stairs climb and descend smoothly. Returns ground level if nothing found.
 // ---------------------------------------------------------------------------
-function checkStairs(px, pz, py, stepBoxes) {
-  let newY = py;
-  for (const s of stepBoxes) {
-    // Check XZ overlap (with some margin)
-    if (px > s.x1 - 0.5 && px < s.x2 + 0.5 && pz > s.z1 - 0.5 && pz < s.z2 + 0.5) {
-      const stepTop = s.top;
-      const diff = stepTop - py;
-      // Only step up (not down), within max step height, and not already on top
-      if (diff > 0.05 && diff < STEP_H && py < stepTop - 0.05) {
-        newY = Math.max(newY, stepTop);
-      }
-    }
-  }
-  return newY;
+function supportHeight(px, pz, feetY, stepBoxes, floorSurfaces) {
+  let best = -0.5;                                  // outside ground level
+  const M = 0.3;                                    // xz margin
+  const consider = (s) => {
+    if (px > s.x1 - M && px < s.x2 + M && pz > s.z1 - M && pz < s.z2 + M
+        && s.top <= feetY + STEP_H && s.top > best) best = s.top;
+  };
+  for (const s of stepBoxes) consider(s);
+  for (const s of floorSurfaces) consider(s);
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,37 +142,14 @@ function buildFloorSurfaces() {
     if (r.type === 'void' || r.type === 'pool') continue;
     surfaces.push({ x1: r.x1, x2: r.x2, z1: r.z1, z2: r.z2, top: 0 });
   }
-  // First floor
+  // First floor — skip the stair well so you can descend through it
   for (const r of FF_ROOMS) {
-    if (r.type === 'void' || r.type === 'pool') continue;
+    if (r.type === 'void' || r.type === 'pool' || r.type === 'stair') continue;
     surfaces.push({ x1: r.x1, x2: r.x2, z1: r.z1, z2: r.z2, top: CFG.FF_LEVEL });
   }
   return surfaces;
 }
 
-// ---------------------------------------------------------------------------
-// Floor snapping — check room surfaces + stair treads
-// ---------------------------------------------------------------------------
-function snapToFloor(px, pz, py, stepBoxes, floorSurfaces) {
-  let floorY = -0.5;   // default: ground level
-  // Check stair treads
-  for (const s of stepBoxes) {
-    if (px > s.x1 - 0.3 && px < s.x2 + 0.3 && pz > s.z1 - 0.3 && pz < s.z2 + 0.3) {
-      if (s.top > floorY && s.top <= py + 0.1) {
-        floorY = s.top;
-      }
-    }
-  }
-  // Check room floor surfaces
-  for (const s of floorSurfaces) {
-    if (px > s.x1 && px < s.x2 && pz > s.z1 && pz < s.z2) {
-      if (s.top > floorY && s.top <= py + 0.1) {
-        floorY = s.top;
-      }
-    }
-  }
-  return floorY;
-}
 
 // ---------------------------------------------------------------------------
 // WalkMode controller
@@ -263,14 +238,8 @@ export function createWalkMode(camera, renderer, stairSteps) {
     pos.x = nx;
     pos.z = nz;
 
-    // Stair climbing
-    pos.y = checkStairs(pos.x, pos.z, pos.y, stairSteps);
-
-    // Floor snapping (room surfaces + stair treads)
-    const floorY = snapToFloor(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
-    if (pos.y < floorY + PLAYER_H - 0.05) {
-      pos.y = Math.max(pos.y, floorY);
-    }
+    // Vertical: snap feet to the support surface below (steps up AND down)
+    pos.y = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
 
     // Apply position
     camera.position.set(pos.x, pos.y + PLAYER_H, pos.z);
@@ -327,6 +296,7 @@ export function createWalkMode(camera, renderer, stairSteps) {
       return active;
     },
 
+    update,
     get isActive() { return active; },
     get position() { return pos; },
     controls,
