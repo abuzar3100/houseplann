@@ -17,6 +17,7 @@ import { buildFloorPlates } from './house/rooms/floorPlates.js';
 import { deriveWallEdges } from './house/walls/deriveEdges.js';
 import { buildWalls } from './house/walls/buildWalls.js';
 import { buildDoors } from './house/doors/buildDoors.js';
+import { createDoorController } from './house/doors/doorController.js';
 import { GF_DOORS, FF_DOORS } from './house/doors/doorSchedule.js';
 import { buildWindows } from './house/windows/buildWindows.js';
 import { GF_WINDOWS, FF_WINDOWS } from './house/windows/windowSchedule.js';
@@ -85,8 +86,7 @@ const ffWalls = ff.group.getObjectByName('walls');
 if (gfWalls) mergeGroupStatic(renderer, gfWalls, 'GF Walls');
 if (ffWalls) mergeGroupStatic(renderer, ffWalls, 'FF Walls');
 mergeGroupStatic(renderer, stair.group, 'Staircase');
-mergeGroupStatic(renderer, gfDoors.group, 'GF Doors');
-mergeGroupStatic(renderer, ffDoors.group, 'FF Doors');
+// NOTE: doors are NOT merged — leaves must stay separate to swing open (F key).
 mergeGroupStatic(renderer, gfWins.group, 'GF Windows');
 mergeGroupStatic(renderer, ffWins.group, 'FF Windows');
 mergeGroupStatic(renderer, roofGroup, 'Roof');
@@ -97,6 +97,10 @@ const state = { floors: 'both', view: '3d', labels: true, roof: true, furniture:
 
 // ---- room inspector init ----
 const inspector = initInspector(renderer, scene, camera, clickTargets);
+
+// ---- doors: press F to open/close nearest door ----
+const doorCtrl = createDoorController(camera, [gfDoors.leaves, ffDoors.leaves]);
+const clock = new THREE.Clock();
 
 function applyState() {
   const showGF = state.floors === 'gf' || state.floors === 'both';
@@ -155,6 +159,8 @@ applyState();
 
 // ---- render loop ----
 renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  doorCtrl.update(dt);
   if (walkMode.isActive) walkMode.update();
   else controls.update();
   renderer.render(scene, camera);
