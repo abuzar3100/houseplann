@@ -228,35 +228,34 @@ export function createWalkMode(camera, renderer, stairSteps) {
     const dt = Math.min(clock.getDelta(), 0.05);
     const flying = mode === 'fly';
 
-    // --- horizontal direction from yaw ---
+    // --- directions (mouse-driven) ---
     const yaw = camera.rotation.y;
-    const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    const flat = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));   // horizontal forward
+    // fly follows the FULL look vector (mouse pitch + yaw); walk stays flat
+    const fwd = flying ? camera.getWorldDirection(new THREE.Vector3()) : flat;
+    const rightV = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
     const speed = (flying ? FLY_SPEED : (keys.shift ? RUN_SPEED : WALK_SPEED)) * dt;
 
-    let dx = 0, dz = 0;
-    if (keys.w) { dx += fwd.x * speed; dz += fwd.z * speed; }
-    if (keys.s) { dx -= fwd.x * speed; dz -= fwd.z * speed; }
-    if (keys.a) { dx -= right.x * speed; dz -= right.z * speed; }
-    if (keys.d) { dx += right.x * speed; dz += right.z * speed; }
+    let dx = 0, dy = 0, dz = 0;
+    if (keys.w) { dx += fwd.x * speed; dy += fwd.y * speed; dz += fwd.z * speed; }
+    if (keys.s) { dx -= fwd.x * speed; dy -= fwd.y * speed; dz -= fwd.z * speed; }
+    if (keys.a) { dx -= rightV.x * speed; dz -= rightV.z * speed; }
+    if (keys.d) { dx += rightV.x * speed; dz += rightV.z * speed; }
 
-    // --- horizontal move ---
     if (flying) {
       pos.x += dx; pos.z += dz;                        // no wall clip while flying
-    } else if (dx !== 0 || dz !== 0) {
-      pos.x = resolveCollision(pos.x + dx, pos.z, PLAYER_R, collisionBoxes).x;
-      pos.z = resolveCollision(pos.x, pos.z + dz, PLAYER_R, collisionBoxes).z;
-    }
-
-    // --- vertical ---
-    const ground = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
-    if (flying) {
-      let vy = 0;
-      if (keys.space) vy += 1;
-      if (keys.shift) vy -= 1;
-      pos.y += vy * FLY_SPEED * dt;
-      if (pos.y < ground) { pos.y = ground; }          // can't sink through floor
+      let vy = dy;                                     // vertical from look direction
+      if (keys.space) vy += FLY_SPEED * dt;            // + Space up
+      if (keys.shift) vy -= FLY_SPEED * dt;            // + Shift down
+      pos.y += vy;
+      const ground = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
+      if (pos.y < ground) pos.y = ground;              // can't sink through floor
     } else {
+      if (dx !== 0 || dz !== 0) {
+        pos.x = resolveCollision(pos.x + dx, pos.z, PLAYER_R, collisionBoxes).x;
+        pos.z = resolveCollision(pos.x, pos.z + dz, PLAYER_R, collisionBoxes).z;
+      }
+      const ground = supportHeight(pos.x, pos.z, pos.y, stairSteps, floorSurfaces);
       if (keys.space && grounded) { velY = JUMP_V; grounded = false; }   // jump
       velY -= GRAVITY * dt;
       pos.y += velY * dt;
